@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import GoogleAuthButton from "../components/GoogleAuth";
+import { toast } from "react-toastify";
 
 const SignIn_Form = () => {
   const navigate = useNavigate();
@@ -60,9 +61,10 @@ const SignIn_Form = () => {
 
         if (response.status === 200 && response.data.token) {
           login(response.data.user, response.data.token);
+          toast.success("Login successful! Redirecting...");
           navigate("/feedback");
         } else {
-          alert("Unexpected response from server.");
+          toast.error("Unexpected response from server.");
         }
       } catch (error) {
         console.error("Login error:", error);
@@ -73,7 +75,9 @@ const SignIn_Form = () => {
             : error.response?.status === 204
             ? "No content returned (204)"
             : "Login failed. Please try again.");
-        setErrors({ ...errors, email: errorMessage });
+
+        // Only show toast, don't set inline errors for server errors
+        toast.error(errorMessage);
       }
     }
     setIsLoading(false);
@@ -97,18 +101,19 @@ const SignIn_Form = () => {
 
       // Save in your auth context
       login(user, token);
+      toast.success("Google login successful! Redirecting...");
 
       // Redirect to feedback page
       navigate("/feedback");
     } catch (error) {
       console.error("Google login failed:", error);
-      alert("Google login failed. Please try again.");
+      toast.error("Google login failed. Please try again.");
     }
   };
 
   const handleGoogleError = () => {
     console.log("Google login failed!");
-    alert("Google login failed. Please try again.");
+    toast.error("Google login failed. Please try again.");
   };
 
   // ✅ UI
@@ -144,9 +149,11 @@ const SignIn_Form = () => {
                          focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-400 transition-all duration-200"
               required
             />
-            {errors.email && (
-              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-            )}
+            {/* Only show inline errors for client-side validation */}
+            {errors.email &&
+              errors.email !== "Login failed. Please try again." && (
+                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+              )}
           </div>
 
           {/* Password */}
@@ -168,6 +175,7 @@ const SignIn_Form = () => {
                          focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-400 transition-all duration-200"
               required
             />
+            {/* Only show inline errors for client-side validation */}
             {errors.password && (
               <p className="text-red-500 text-xs mt-1">{errors.password}</p>
             )}
@@ -187,7 +195,7 @@ const SignIn_Form = () => {
         {/* Footer */}
         <div className="text-left text-gray-600 text-sm mt-4">
           <p>
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <Link
               to="/register"
               className="text-blue-800 hover:underline font-medium"

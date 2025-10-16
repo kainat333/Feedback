@@ -4,9 +4,8 @@ import axios from "axios";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import GoogleAuthButton from "../components/GoogleAuth";
-import { jwtDecode } from "jwt-decode";
+import { showError, showSuccess } from "../utils/toassters";
 
-jwtDecode;
 const Register_Form = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -17,12 +16,12 @@ const Register_Form = () => {
     password: "",
     acceptTerms: false,
   });
-
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [showErrors, setShowErrors] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Validate individual fields
   const validateField = (name, value) => {
     let error = "";
     if (name === "fullName") {
@@ -33,48 +32,22 @@ const Register_Form = () => {
     if (name === "email") {
       const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!value.trim()) error = "Email is required";
-      else if (!pattern.test(value)) error = "Invalid email address";
+      else if (!pattern.test(value))
+        error = "Please enter a valid email address";
     }
     if (name === "password") {
       const pattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
       if (!value.trim()) error = "Password is required";
       else if (!pattern.test(value))
-        error = "Must have 8+ chars, 1 uppercase, 1 lowercase & 1 number";
+        error =
+          "Password must have 8+ characters, 1 uppercase, 1 lowercase & 1 number";
     }
     if (name === "acceptTerms" && !value)
-      error = "You must accept Terms and Privacy Policy";
+      error = "You must accept our Terms and Privacy Policy";
     return error;
   };
-  const handleGoogleSuccess = async (credentialResponse) => {
-    try {
-      const credential = credentialResponse.credential;
 
-      // Send credential to backend
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/google",
-        {
-          credential,
-        }
-      );
-
-      // Backend returns user + token
-      const { user, token } = response.data;
-
-      // Save login info globally
-      login(user, token);
-
-      alert(`Welcome ${user.name}!`);
-      navigate("/feedback");
-    } catch (err) {
-      console.error("Google login failed:", err);
-      alert("Google login failed. Please try again.");
-    }
-  };
-
-  const handleGoogleError = () => {
-    console.log("Google login failed!");
-    alert("Google login failed. Please try again.");
-  };
+  // Validate all fields
   const validateAll = () => {
     const newErrors = {};
     Object.keys(formData).forEach((key) => {
@@ -93,6 +66,33 @@ const Register_Form = () => {
     }));
   };
 
+  // Handle Google login success
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const credential = credentialResponse.credential;
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/google",
+        { credential }
+      );
+
+      const { user, token } = response.data;
+      login(user, token);
+      showSuccess(`Welcome ${user.name}!`);
+      navigate("/feedback");
+    } catch (err) {
+      console.error("Google login failed:", err);
+      showError(
+        err.response?.data?.message ||
+          "Google login failed. Please check your account and try again."
+      );
+    }
+  };
+
+  const handleGoogleError = () => {
+    showError("Google login failed. Please try again.");
+  };
+
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setShowErrors(true);
@@ -101,12 +101,15 @@ const Register_Form = () => {
 
     try {
       setIsLoading(true);
+
+      // Register user
       await axios.post("http://localhost:5000/api/users/register", {
         name: formData.fullName,
         email: formData.email,
         password: formData.password,
       });
 
+      // Login after successful registration
       const loginResponse = await axios.post(
         "http://localhost:5000/api/users/login",
         {
@@ -117,12 +120,25 @@ const Register_Form = () => {
 
       if (loginResponse.data.token) {
         login(loginResponse.data.user, loginResponse.data.token);
+        showSuccess(`Welcome ${loginResponse.data.user.name}!`);
         navigate("/feedback");
       }
     } catch (error) {
-      const msg =
-        error.response?.data?.message || "Registration failed. Try again.";
-      setErrors({ ...errors, email: msg });
+      console.error(error);
+
+      // Backend field errors
+      if (error.response?.data?.field && error.response?.data?.message) {
+        setErrors((prev) => ({
+          ...prev,
+          [error.response.data.field]: error.response.data.message,
+        }));
+      } else {
+        // Friendly generic message for users
+        showError(
+          error.response?.data?.message ||
+            "Something went wrong. Please try again later."
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -130,9 +146,7 @@ const Register_Form = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-      {/* Changed to w-full max-w-2xl for wider form */}
       <div className="w-full max-w-sm bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-        {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Create Account
@@ -142,7 +156,6 @@ const Register_Form = () => {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Full Name */}
           <div>
@@ -244,7 +257,6 @@ const Register_Form = () => {
             )}
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={isLoading}
@@ -254,7 +266,6 @@ const Register_Form = () => {
           </button>
         </form>
 
-        {/* Footer */}
         <p className="text-center text-gray-600 text-sm mt-6">
           Already have an account?{" "}
           <Link
