@@ -1,0 +1,212 @@
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { useAuth } from "../context/AuthContext";
+import GoogleAuthButton from "../components/GoogleAuth";
+
+const SignIn_Form = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [errors, setErrors] = useState({
+    email: "",
+    password: "",
+  });
+
+  // ✅ Handle input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  // ✅ Validate email and password
+  const validate = () => {
+    let valid = true;
+    const newErrors = { email: "", password: "" };
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(formData.email)) {
+      newErrors.email = "Invalid email address";
+      valid = false;
+    }
+
+    setErrors(newErrors);
+    return valid;
+  };
+
+  // ✅ Handle form submit
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    if (validate()) {
+      try {
+        const response = await axios.post(
+          "http://localhost:5000/api/users/login",
+          {
+            email: formData.email,
+            password: formData.password,
+          }
+        );
+
+        if (response.status === 200 && response.data.token) {
+          login(response.data.user, response.data.token);
+          navigate("/feedback");
+        } else {
+          alert("Unexpected response from server.");
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        const errorMessage =
+          error.response?.data?.message ||
+          (error.response?.status === 404
+            ? "API endpoint not found (404)"
+            : error.response?.status === 204
+            ? "No content returned (204)"
+            : "Login failed. Please try again.");
+        setErrors({ ...errors, email: errorMessage });
+      }
+    }
+    setIsLoading(false);
+  };
+
+  // ✅ Google login handlers
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const credential = credentialResponse.credential;
+
+      // Send the credential to your backend for verification and login/signup
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/google",
+        {
+          credential,
+        }
+      );
+
+      // Extract user + token from backend response
+      const { user, token } = response.data;
+
+      // Save in your auth context
+      login(user, token);
+
+      // Redirect to feedback page
+      navigate("/feedback");
+    } catch (error) {
+      console.error("Google login failed:", error);
+      alert("Google login failed. Please try again.");
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.log("Google login failed!");
+    alert("Google login failed. Please try again.");
+  };
+
+  // ✅ UI
+  return (
+    <div className="flex items-start justify-center min-h-screen bg-gray-50 p-4 pt-20">
+      <div className="w-full max-w-sm bg-white p-6 rounded-xl shadow-md border border-gray-200">
+        {/* Header */}
+        <div className="mb-5 text-left">
+          <h1 className="text-2xl font-bold text-gray-800">Sign In</h1>
+          <p className="text-gray-600 text-sm">
+            Welcome back! Please login to your account
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 text-left">
+          {/* Email */}
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Email Address
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Enter your email"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm 
+                         focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-400 transition-all duration-200"
+              required
+            />
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+            )}
+          </div>
+
+          {/* Password */}
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Enter your password"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm 
+                         focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-400 transition-all duration-200"
+              required
+            />
+            {errors.password && (
+              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+            )}
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-black hover:bg-gray-800 disabled:bg-gray-400 
+                       text-white py-2 rounded-lg text-sm font-medium transition-all"
+          >
+            {isLoading ? "Signing In..." : "Sign In"}
+          </button>
+        </form>
+
+        {/* Footer */}
+        <div className="text-left text-gray-600 text-sm mt-4">
+          <p>
+            Don’t have an account?{" "}
+            <Link
+              to="/register"
+              className="text-blue-800 hover:underline font-medium"
+            >
+              Register
+            </Link>
+          </p>
+          <div className="flex items-center justify-center my-3">
+            <span className="text-gray-400 text-sm">or</span>
+          </div>
+          <GoogleAuthButton
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            text="Signin_with"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SignIn_Form;
