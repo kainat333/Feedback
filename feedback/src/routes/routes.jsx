@@ -5,6 +5,8 @@ import PageNotFound from "../pages/PageNotFound";
 import ResponseSubmitted from "../pages/REsponseSubmitted";
 import PrivacyPolicy from "../pages/privacy";
 import TermsAndConditions from "../pages/terms";
+import ForgotPassword from "../pages/forgetpassword";
+import ResetPassword from "../pages/resetpassword";
 
 export const routes = [
   {
@@ -14,6 +16,8 @@ export const routes = [
   { path: "/response-submitted", element: <ResponseSubmitted /> },
   { path: "/privacy", element: <PrivacyPolicy /> },
   { path: "/terms", element: <TermsAndConditions /> },
+  { path: "/forgot-password", element: <ForgotPassword /> },
+  { path: "/reset-password", element: <ResetPassword /> },
   {
     path: "/register",
     element: <Register />,

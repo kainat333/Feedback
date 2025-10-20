@@ -1,13 +1,51 @@
-// models/User.js
+// import mongoose from "mongoose";
+// import bcrypt from "bcryptjs";
+
+// const userSchema = new mongoose.Schema(
+//   {
+//     name: { type: String, required: true },
+//     email: {
+//       type: String,
+//       required: true,
+//       unique: true,
+//       lowercase: true,
+//       trim: true,
+//     },
+//     password: {
+//       type: String,
+//       required: function () {
+//         return !this.googleId;
+//       },
+//     },
+//     googleId: { type: String, default: null },
+//     resetPasswordToken: String,
+//     resetPasswordExpires: Date,
+//   },
+//   { timestamps: true }
+// );
+
+// // Hash password before saving
+// userSchema.pre("save", async function (next) {
+//   if (!this.isModified("password") || !this.password) return next();
+//   const salt = await bcrypt.genSalt(10);
+//   this.password = await bcrypt.hash(this.password, salt);
+//   next();
+// });
+
+// // Compare password for login
+// userSchema.methods.matchPassword = async function (enteredPassword) {
+//   if (!this.password) return false;
+//   return await bcrypt.compare(enteredPassword, this.password);
+// };
+
+// export default mongoose.model("User", userSchema);
+// ./models/user.js
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-    },
+    name: { type: String, required: true },
     email: {
       type: String,
       required: true,
@@ -18,18 +56,16 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: function () {
-        return !this.googleId; // Only required if not Google signup
+        return !this.googleId;
       },
     },
-    googleId: {
-      type: String, // Store unique Google account ID
-      default: null,
-    },
+    googleId: { type: String, default: null },
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
   },
   { timestamps: true }
 );
 
-// 🔒 Hash password before saving (only if password exists)
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password") || !this.password) return next();
   const salt = await bcrypt.genSalt(10);
@@ -37,9 +73,8 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// 🧩 Password comparison method (for login)
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  if (!this.password) return false; // For Google users
+  if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

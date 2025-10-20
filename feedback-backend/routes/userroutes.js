@@ -38,6 +38,8 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
 
     const isMatch = await bcrypt.compare(password, user.password);
+
+    console.log("✅ Password match result:", isMatch);
     if (!isMatch)
       return res.status(400).json({ message: "Invalid email or password" });
 
@@ -49,6 +51,11 @@ router.post("/login", async (req, res) => {
       token,
       user: { id: user._id, name: user.name, email: user.email },
     });
+    console.log("🔍 Login attempt for:", email);
+    console.log("Submitted password:", password);
+    console.log("Stored hash:", user.password);
+
+    console.log("✅ Password match result:", isMatch);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }

@@ -155,7 +155,6 @@ const Register_Form = () => {
             Join us and start your journey
           </p>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Full Name */}
           <div>
