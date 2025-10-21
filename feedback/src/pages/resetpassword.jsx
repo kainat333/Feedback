@@ -21,6 +21,10 @@ const ResetPassword = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [errors, setErrors] = useState({
+    newpassword: "",
+    confirmpassword: "",
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,13 +32,21 @@ const ResetPassword = () => {
     const newpassword = data.get("newpassword");
     const confirmpassword = data.get("confirmpassword");
 
-    if (newpassword !== confirmpassword) {
-      toast.error("New Password and Confirm Password do not match!", {
-        autoClose: 5000,
-        position: "top-right",
-      });
-      return;
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    const newErrors = { newpassword: "", confirmpassword: "" };
+
+    if (!passwordPattern.test(newpassword)) {
+      newErrors.newpassword =
+        "Password must be at least 8 characters and include uppercase, lowercase, and a number.";
     }
+
+    if (newpassword !== confirmpassword) {
+      newErrors.confirmpassword = "Passwords do not match.";
+    }
+
+    setErrors(newErrors);
+
+    if (newErrors.newpassword || newErrors.confirmpassword) return;
 
     try {
       const url = `${import.meta.env.VITE_BACKEND_URL}/api/resetPassword`;
@@ -55,7 +67,7 @@ const ResetPassword = () => {
           position: "top-right",
         });
         setTimeout(() => {
-          navigate("/signin");
+          navigate("/feedback");
         }, 2000);
       }
     } catch (err) {
@@ -102,6 +114,8 @@ const ResetPassword = () => {
                 id="newpassword"
                 label="New Password"
                 autoFocus
+                error={!!errors.newpassword}
+                helperText={errors.newpassword}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -128,6 +142,8 @@ const ResetPassword = () => {
                 name="confirmpassword"
                 id="confirmpassword"
                 label="Confirm Password"
+                error={!!errors.confirmpassword}
+                helperText={errors.confirmpassword}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">

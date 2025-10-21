@@ -6,6 +6,13 @@
 
   box-sizing: border-box; /* Important! Prevents overflow */
 }
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
 
 /* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;

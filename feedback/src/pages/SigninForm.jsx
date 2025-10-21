@@ -10,60 +10,40 @@ const SignIn_Form = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({ email: "", password: "" });
 
-  const [errors, setErrors] = useState({
-    email: "",
-    password: "",
-  });
-
-  // ✅ Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  // ✅ Validate email and password
   const validate = () => {
     let valid = true;
     const newErrors = { email: "", password: "" };
-
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(formData.email)) {
       newErrors.email = "Invalid email address";
       valid = false;
     }
-
     setErrors(newErrors);
     return valid;
   };
 
-  // ✅ Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
     if (validate()) {
       try {
         const response = await axios.post(
           "http://localhost:5000/api/users/login",
-          {
-            email: formData.email,
-            password: formData.password,
-          }
+          { email: formData.email, password: formData.password }
         );
-
         if (response.status === 200 && response.data.token) {
           login(response.data.user, response.data.token);
-          toast.success("Login successful! Redirecting...");
+          toast.success("Login successful!");
           navigate("/feedback");
         } else {
           toast.error("Unexpected response from server.");
@@ -77,35 +57,22 @@ const SignIn_Form = () => {
             : error.response?.status === 204
             ? "No content returned (204)"
             : "Login failed. Please try again.");
-
-        // Only show toast, don't set inline errors for server errors
         toast.error(errorMessage);
       }
     }
     setIsLoading(false);
   };
 
-  // ✅ Google login handlers
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       const credential = credentialResponse.credential;
-
-      // Send the credential to your backend for verification and login/signup
       const response = await axios.post(
         "http://localhost:5000/api/auth/google",
-        {
-          credential,
-        }
+        { credential }
       );
-
-      // Extract user + token from backend response
       const { user, token } = response.data;
-
-      // Save in your auth context
       login(user, token);
-      toast.success("Google login successful! Redirecting...");
-
-      // Redirect to feedback page
+      toast.success("Google login successful!");
       navigate("/feedback");
     } catch (error) {
       console.error("Google login failed:", error);
@@ -118,12 +85,11 @@ const SignIn_Form = () => {
     toast.error("Google login failed. Please try again.");
   };
 
-  // ✅ UI
   return (
-    <div className="flex items-start justify-center min-h-screen bg-gray-50 p-4 pt-20">
-      <div className="w-full max-w-sm bg-white p-6 rounded-xl shadow-md border border-gray-200">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 p-0 m-0 overflow-hidden">
+      <div className="w-full max-w-sm bg-white p-6 rounded-xl shadow-md border border-gray-200 box-border">
         {/* Header */}
-        <div className="mb-5 text-left">
+        <div className="flex items-center justify-center flex-col mb-5 text-left">
           <h1 className="text-2xl font-bold text-gray-800">Sign In</h1>
           <p className="text-gray-600 text-sm">
             Welcome back! Please login to your account
@@ -132,7 +98,6 @@ const SignIn_Form = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4 text-left">
-          {/* Email */}
           <div>
             <label
               htmlFor="email"
@@ -147,18 +112,15 @@ const SignIn_Form = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="Enter your email"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm 
-                         focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-400 transition-all duration-200"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-400 transition-all duration-200"
               required
             />
-            {/* Only show inline errors for client-side validation */}
             {errors.email &&
               errors.email !== "Login failed. Please try again." && (
                 <p className="text-red-500 text-xs mt-1">{errors.email}</p>
               )}
           </div>
 
-          {/* Password */}
           <div className="relative">
             <input
               id="password"
@@ -167,8 +129,7 @@ const SignIn_Form = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="Enter your password"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pr-10 
-               focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-400 transition-all duration-200"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pr-10 focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-400 transition-all duration-200"
               required
             />
             <span
@@ -179,22 +140,19 @@ const SignIn_Form = () => {
             </span>
           </div>
 
-          <div className=" flex text-sm text-blue-800 justify-end">
+          <div className="flex text-sm text-blue-800 justify-end">
             <Link to="/forgot-password">Forget Password?</Link>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-black hover:bg-gray-800 disabled:bg-gray-400 
-                       text-white py-2 rounded-lg text-sm font-medium transition-all"
+            className="w-full bg-black hover:bg-gray-800 disabled:bg-gray-400 text-white py-2 rounded-lg text-sm font-medium transition-all"
           >
             {isLoading ? "Signing In..." : "Sign In"}
           </button>
         </form>
 
-        {/* Footer */}
         <div className="text-left text-gray-600 text-sm mt-4">
           <p>
             Don't have an account?{" "}

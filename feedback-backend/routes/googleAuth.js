@@ -57,7 +57,7 @@ router.post("/google", async (req, res) => {
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET || "fallback_secret_key",
-      { expiresIn: "1d" }
+      { expiresIn: "1h" }
     );
 
     // Send successful response
