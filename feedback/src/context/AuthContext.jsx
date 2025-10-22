@@ -32,11 +32,22 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // ✅ FIXED: Make login function more flexible
   const login = (userData, authToken) => {
-    setUser(userData);
-    setToken(authToken);
-    localStorage.setItem("token", authToken);
-    localStorage.setItem("user", JSON.stringify(userData));
+    console.log("🔄 Login called with:", {
+      hasUserData: !!userData,
+      hasToken: !!authToken,
+    });
+
+    if (authToken) {
+      setToken(authToken);
+      localStorage.setItem("token", authToken);
+    }
+
+    if (userData) {
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+    }
   };
 
   const logout = () => {

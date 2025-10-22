@@ -1,14 +1,16 @@
 import { GoogleLogin } from "@react-oauth/google";
 
-const GoogleAuthButton = ({ onSuccess, onError, text }) => {
+const GoogleAuthButton = ({ onSuccess, onError, text = "signin_with" }) => {
   return (
-    <div className="google-login-btn">
-      <GoogleLogin
-        onSuccess={onSuccess}
-        onError={onError}
-        text={text} //
-      />
-    </div>
+    <GoogleLogin
+      onSuccess={onSuccess}
+      onError={onError}
+      useOneTap
+      text={text}
+      theme="outline"
+      size="large"
+      width="100%"
+    />
   );
 };
 

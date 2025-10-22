@@ -7,17 +7,81 @@ import { toast } from "react-toastify";
 const FeedbackForm = () => {
   const [formData, setFormData] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [isProcessing, setIsProcessing] = useState(false);
   const totalPages = 3;
   const navigate = useNavigate();
-  const { user, token, loading, isAuthenticated } = useAuth();
+  const { user, token, loading, isAuthenticated, login } = useAuth();
 
+  // ✅ FIXED: OAuth processing
   useEffect(() => {
-    if (!loading && !isAuthenticated()) {
-      toast.error("Session expired. Please sign in again.");
+    const processOAuth = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const oauthToken = params.get("token");
+      const userParam = params.get("user");
+
+      if (oauthToken) {
+        console.log("🔄 Processing OAuth token...");
+        setIsProcessing(true);
+        try {
+          let userData = null;
+
+          if (userParam) {
+            // If user data is provided in URL
+            userData = JSON.parse(decodeURIComponent(userParam));
+            console.log("✅ User data from URL:", userData);
+          }
+
+          // Login with both user data and token
+          login(userData, oauthToken);
+
+          // Clear URL immediately
+          window.history.replaceState({}, "", "/feedback");
+          toast.success("Successfully signed in!");
+        } catch (error) {
+          console.error("OAuth processing failed:", error);
+          toast.error("Authentication failed.");
+          navigate("/signin");
+        } finally {
+          setIsProcessing(false);
+        }
+      } else {
+        setIsProcessing(false);
+      }
+    };
+
+    processOAuth();
+  }, [login, navigate]);
+
+  // ✅ FIXED: Auth check
+  useEffect(() => {
+    if (!loading && !isProcessing && !isAuthenticated()) {
+      console.log("Not authenticated, redirecting to signin");
+      toast.error("Please sign in to access the feedback form.");
       navigate("/signin");
     }
-  }, [loading, isAuthenticated, navigate]);
+  }, [loading, isProcessing, isAuthenticated, navigate]);
 
+  // Show loading while processing
+  if (loading || isProcessing) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex justify-center items-center">
+        <div className="text-gray-600 text-sm">
+          {isProcessing ? "Completing sign in..." : "Loading..."}
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is authenticated
+  if (!user || !isAuthenticated()) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex justify-center items-center">
+        <div className="text-gray-600 text-sm">Redirecting to sign in...</div>
+      </div>
+    );
+  }
+
+  // Rest of your component code...
   const currentPageQuestions = feedbackQuestions.filter(
     (q) => q.page === String(currentPage)
   );
@@ -90,17 +154,10 @@ const FeedbackForm = () => {
     }
   };
 
-  if (loading || !user) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex justify-center items-center">
-        <div className="text-gray-600 text-sm">Loading...</div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center py-6 px-3">
       <div className="relative w-full max-w-3xl bg-white rounded-xl shadow-lg border border-gray-200 p-6 overflow-hidden">
+        {/* Your existing JSX remains the same */}
         <div className="absolute top-0 left-0 w-24 h-1 bg-black rounded-tr-full"></div>
         <div className="absolute top-0 right-0 w-24 h-1 bg-black rounded-tl-full"></div>
 
@@ -117,12 +174,12 @@ const FeedbackForm = () => {
               <span className="font-medium text-gray-900">{user.email}</span>{" "}
               <span className="text-gray-500">(Signed in)</span>
             </div>
-            <a
-              href="/signin"
+            <button
+              onClick={() => navigate("/signin")}
               className="text-gray-900 text-xs font-medium hover:underline"
             >
               Switch account
-            </a>
+            </button>
           </div>
         </div>
 

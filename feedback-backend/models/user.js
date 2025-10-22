@@ -14,10 +14,11 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: function () {
-        return !this.googleId;
+        return !this.googleId && !this.linkedinId;
       },
     },
     googleId: { type: String, default: null },
+    linkedinId: { type: String, default: null },
     resetPasswordToken: String,
     resetPasswordExpires: Date,
   },
