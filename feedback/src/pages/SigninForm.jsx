@@ -15,21 +15,28 @@ const SignIn_Form = () => {
   const [errors, setErrors] = useState({ email: "", password: "" });
 
   // Handle LinkedIn login
-  const handleLinkedInLogin = () => {
+  // Handle LinkedIn login with error handling
+  const handleLinkedInLogin = async () => {
     console.log("🚀 Starting LinkedIn OAuth...");
 
-    const params = new URLSearchParams({
-      response_type: "code",
-      client_id: import.meta.env.VITE_LINKEDIN_CLIENT_ID,
-      redirect_uri: "http://localhost:5000/api/linkedin/callback",
-      scope: "openid profile email",
-      state: "linkedin_oauth_" + Math.random().toString(36).substring(2),
-    });
+    try {
+      // Quick check if backend might be running
+      const params = new URLSearchParams({
+        response_type: "code",
+        client_id: import.meta.env.VITE_LINKEDIN_CLIENT_ID,
+        redirect_uri: "http://localhost:5000/api/linkedin/callback",
+        scope: "openid profile email",
+        state: "linkedin_oauth_" + Math.random().toString(36).substring(2),
+      });
 
-    const linkedinAuthUrl = `https://www.linkedin.com/oauth/v2/authorization?${params}`;
-    console.log("🔗 Redirecting to:", linkedinAuthUrl);
+      const linkedinAuthUrl = `https://www.linkedin.com/oauth/v2/authorization?${params}`;
+      console.log("🔗 Redirecting to:", linkedinAuthUrl);
 
-    window.location.href = linkedinAuthUrl;
+      window.location.href = linkedinAuthUrl;
+    } catch (error) {
+      console.error("Error starting LinkedIn OAuth:", error);
+      toast.error("Server Error please try again later.");
+    }
   };
 
   // Handle OAuth errors from redirect
@@ -38,7 +45,7 @@ const SignIn_Form = () => {
     const error = params.get("error");
 
     if (error) {
-      console.log("❌ OAuth error detected:", error);
+      console.log("OAuth error detected:", error);
 
       let errorMessage = "LinkedIn login failed. Please try again.";
 
@@ -175,7 +182,7 @@ const SignIn_Form = () => {
               onClick={handleLinkedInLogin}
               type="button"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 text-gray-800 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md font-sans"
+              className="w-full flex items-center justify-start gap-3 bg-white border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 text-gray-800 py-3 px-3 rounded-sm text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md font-sans"
             >
               <svg
                 className="w-5 h-5 flex-shrink-0"
@@ -184,7 +191,9 @@ const SignIn_Form = () => {
               >
                 <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
               </svg>
-              <span className="text-sm font-sans">Sign in with LinkedIn</span>
+              <span className="flex-1 text-center text-sm font-sans">
+                Sign in with LinkedIn
+              </span>
             </button>
           </div>
 

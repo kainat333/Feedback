@@ -107,7 +107,7 @@ const FeedbackForm = () => {
     });
 
     if (unanswered.length > 0) {
-      toast.error("Please answer all required questions on this page.");
+      toast.error("Please answer all  questions.");
       return false;
     }
     return true;
