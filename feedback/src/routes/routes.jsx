@@ -1,17 +1,17 @@
-import Register from "../pages/Register";
 import FeedbackForm from "../pages/Feedback";
-import SignIn_Form from "../pages/SigninForm";
+
 import PageNotFound from "../pages/PageNotFound";
 import ResponseSubmitted from "../pages/REsponseSubmitted";
 import PrivacyPolicy from "../pages/privacy";
 import TermsAndConditions from "../pages/terms";
 import ForgotPassword from "../pages/forgetpassword";
 import ResetPassword from "../pages/resetpassword";
-
+import RegisterForm from "../components/Forms/RegisterForm";
+import SignIn_Form from "../components/Forms/SignIn_Form";
 export const routes = [
   {
     path: "/",
-    element: <Register />,
+    element: <RegisterForm />,
   },
   { path: "/response-submitted", element: <ResponseSubmitted /> },
   { path: "/privacy", element: <PrivacyPolicy /> },
@@ -20,7 +20,7 @@ export const routes = [
   { path: "/reset-password", element: <ResetPassword /> },
   {
     path: "/register",
-    element: <Register />,
+    element: <RegisterForm />,
   },
   {
     path: "/signin",

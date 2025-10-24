@@ -1,19 +1,19 @@
-// utils/emailService.js
+// utils/emailservice.js
 const nodemailer = require("nodemailer");
 
 // Create transporter
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.EMAIL_ID,
+    pass: process.env.EMAIL_PASSWORD,
   },
 });
 
 const sendOTPEmail = async (email, otp, name = "User") => {
   try {
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: process.env.EMAIL_ID,
       to: email,
       subject: "Your OTP Code - Verify Your Account",
       html: `
