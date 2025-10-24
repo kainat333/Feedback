@@ -24,11 +24,11 @@ const getAccessToken = async (code) => {
       }
     );
 
-    console.log("✅ Access token received successfully");
+    console.log(" Access token received successfully");
     return response.data.access_token;
   } catch (error) {
     console.error(
-      "❌ Error getting access token:",
+      " Error getting access token:",
       error.response?.data || error.message
     );
     throw new Error(
@@ -41,20 +41,20 @@ const getAccessToken = async (code) => {
 
 const LinkedCallBack = async (req, res) => {
   try {
-    console.log("📨 LinkedIn callback received:", req.query);
+    console.log(" LinkedIn callback received:", req.query);
 
     const { code, error, error_description } = req.query;
 
     // Check for LinkedIn OAuth errors
     if (error) {
-      console.error("❌ LinkedIn OAuth error:", error, error_description);
+      console.error(" LinkedIn OAuth error:", error, error_description);
       return res.redirect(
         `${process.env.FRONTEND_URL}/signin?error=linkedin_${error}`
       );
     }
 
     if (!code) {
-      console.error("❌ Authorization code missing");
+      console.error(" Authorization code missing");
       return res.redirect(
         `${process.env.FRONTEND_URL}/signin?error=authorization_code_missing`
       );
@@ -74,7 +74,7 @@ const LinkedCallBack = async (req, res) => {
     );
 
     console.log(
-      "✅ OpenID Connect response:",
+      " OpenID Connect response:",
       JSON.stringify(userInfoRes.data, null, 2)
     );
 
@@ -84,7 +84,7 @@ const LinkedCallBack = async (req, res) => {
     const email = userData.email;
 
     if (!email) {
-      console.error("❌ No email found in LinkedIn OpenID response");
+      console.error(" No email found in LinkedIn OpenID response");
       return res.redirect(
         `${process.env.FRONTEND_URL}/signin?error=email_not_found`
       );
@@ -125,7 +125,7 @@ const LinkedCallBack = async (req, res) => {
       linkedinId: user.linkedinId,
     };
 
-    console.log("🎉 LinkedIn login successful for:", email);
+    console.log(" LinkedIn login successful for:", email);
 
     // ✅ FIXED: Redirect with BOTH token and user data
     return res.redirect(
@@ -133,11 +133,11 @@ const LinkedCallBack = async (req, res) => {
         process.env.FRONTEND_URL
       }/feedback?token=${token}&user=${encodeURIComponent(
         JSON.stringify(userResponse)
-      )}`
+      )}&replaceHistory=true`
     );
   } catch (error) {
     console.error(
-      "💥 LinkedIn OAuth callback error:",
+      " LinkedIn OAuth callback error:",
       error.response?.data || error.message || error
     );
 

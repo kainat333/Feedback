@@ -1,10 +1,60 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { showError, showSuccess } from "../utils/toassters";
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import GoogleAuthButton from "./GoogleAuth";
+
+// OTP Input Component
+const OTPInput = ({ otp, setOtp, isLoading }) => {
+  const inputsRef = useRef([]);
+
+  const handleChange = (index, value) => {
+    if (!/^\d?$/.test(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      inputsRef.current[index + 1].focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      inputsRef.current[index - 1].focus();
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="text-center">
+        <p className="text-gray-600 text-sm mb-4">
+          Enter the 6-digit code sent to your email
+        </p>
+
+        <div className="flex justify-between mb-4">
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => (inputsRef.current[index] = el)}
+              type="text"
+              maxLength="1"
+              value={digit}
+              onChange={(e) => handleChange(index, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(index, e)}
+              className="w-10 h-10 text-center text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans"
+              disabled={isLoading}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Register_Form = () => {
   const navigate = useNavigate();
@@ -21,6 +71,12 @@ const Register_Form = () => {
   const [showErrors, setShowErrors] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // New OTP states
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [isVerifying, setIsVerifying] = useState(false);
+
   // Handle LinkedIn login
   const handleLinkedInLogin = () => {
     console.log(" Starting LinkedIn OAuth...");
@@ -34,37 +90,11 @@ const Register_Form = () => {
     });
 
     const linkedinAuthUrl = `https://www.linkedin.com/oauth/v2/authorization?${params}`;
-    console.log("🔗 Redirecting to:", linkedinAuthUrl);
+    console.log(" Redirecting to:", linkedinAuthUrl);
 
     window.location.href = linkedinAuthUrl;
   };
 
-  // Handle OAuth errors from redirect
-  // useEffect(() => {
-  //   const params = new URLSearchParams(window.location.search);
-  //   const error = params.get("error");
-
-  //   if (error) {
-  //     console.log("❌ OAuth error detected:", error);
-
-  //     let errorMessage = "LinkedIn login failed. Please try again.";
-
-  //     if (error.includes("authorization_code_missing")) {
-  //       errorMessage = "Authorization failed. Please try logging in again.";
-  //     } else if (error.includes("insufficient_permissions")) {
-  //       errorMessage = "Please grant all requested permissions to continue.";
-  //     } else if (error.includes("email_not_found")) {
-  //       errorMessage = "Could not retrieve your email from LinkedIn.";
-  //     } else if (error.includes("access_denied")) {
-  //       errorMessage = "You denied the LinkedIn login request.";
-  //     } else if (error.includes("invalid_token")) {
-  //       errorMessage = "Authentication token invalid. Please try again.";
-  //     }
-
-  //     showError(errorMessage);
-  //     window.history.replaceState({}, "", window.location.pathname);
-  //   }
-  // }, []);
   // Handle OAuth errors from redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -73,13 +103,12 @@ const Register_Form = () => {
     const user = params.get("user");
     const token = params.get("token");
 
-    // Handle LinkedIn SUCCESS case - ADD THIS BLOCK
+    // Handle LinkedIn SUCCESS case
     if (success === "linkedin" && token && user) {
       try {
         const userData = JSON.parse(decodeURIComponent(user));
         login(userData, token);
 
-        // Show success toast for LinkedIn registration (since this is Register_Form)
         showSuccess(
           `Welcome ${userData.name}! Account created with LinkedIn successfully! 🎉`
         );
@@ -116,6 +145,18 @@ const Register_Form = () => {
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [login, navigate]);
+
+  // OTP Timer Effect
+  useEffect(() => {
+    let interval;
+    if (otpTimer > 0 && otpSent) {
+      interval = setInterval(() => {
+        setOtpTimer((timer) => timer - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpTimer, otpSent]);
+
   // Validate individual fields
   const validateField = (name, value) => {
     let error = "";
@@ -177,7 +218,7 @@ const Register_Form = () => {
       const { credential } = credentialResponse;
 
       if (!credential) {
-        console.error("❌ No credential in response");
+        console.error(" No credential in response");
         showError("Google authentication failed. No credential received.");
         return;
       }
@@ -189,14 +230,14 @@ const Register_Form = () => {
         { credential }
       );
 
-      console.log("✅ Backend response received:", response.data);
+      console.log("Backend response received:", response.data);
 
       const { user, token } = response.data;
       login(user, token);
       showSuccess(`Welcome ${user.name}!`);
       navigate("/feedback");
     } catch (error) {
-      console.error("❌ Google login failed:", error);
+      console.error("Google login failed:", error);
       console.error("Error response data:", error.response?.data);
 
       showError("Google login failed. Please try again.");
@@ -208,53 +249,130 @@ const Register_Form = () => {
     showError("Google login failed. Please try again.");
   };
 
-  // Handle form submission
+  // STEP 1: Request OTP
   const handleSubmit = async (e) => {
     e.preventDefault();
     setShowErrors(true);
     const validationErrors = validateAll();
+
     if (Object.keys(validationErrors).length > 0) return;
 
     try {
       setIsLoading(true);
 
-      // Register user
-      await axios.post("http://localhost:5000/api/users/register", {
-        name: formData.fullName,
-        email: formData.email,
-        password: formData.password,
-      });
-
-      // Login after successful registration
-      const loginResponse = await axios.post(
-        "http://localhost:5000/api/users/login",
+      // ✅ CORRECT URL - Remove /otp from path
+      const response = await axios.post(
+        "http://localhost:5000/api/request-otp",
         {
           email: formData.email,
+          name: formData.fullName,
+          purpose: "registration",
+        }
+      );
+
+      if (response.data.success) {
+        setOtpSent(true);
+        setOtpTimer(60); // 60 seconds timer
+        showSuccess("OTP sent to your email! Check your inbox.");
+
+        // Auto-fill OTP for testing (optional)
+        // if (response.data.otp) {
+        //   const otpArray = response.data.otp.split("");
+        //   setOtp(otpArray);
+        // }
+      }
+    } catch (error) {
+      console.error("OTP request failed:", error);
+
+      if (
+        error.code === "ECONNREFUSED" ||
+        error.message?.includes("Network Error")
+      ) {
+        showError("Something went wrong.Please try again ");
+      } else {
+        showError(
+          error.response?.data?.message ||
+            "OTP sent to your email! Check your inbox."
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // STEP 2: Verify OTP and Complete Registration
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    const otpString = otp.join("");
+
+    if (otpString.length !== 6) {
+      showError("Please enter the complete 6-digit OTP");
+      return;
+    }
+
+    try {
+      setIsVerifying(true);
+
+      // ✅ CORRECT URL - Remove /otp from path
+      const response = await axios.post(
+        "http://localhost:5000/api/verify-otp",
+        {
+          email: formData.email,
+          otp: otpString,
+          name: formData.fullName,
           password: formData.password,
         }
       );
 
-      if (loginResponse.data.token) {
-        login(loginResponse.data.user, loginResponse.data.token);
-        showSuccess(`Welcome ${loginResponse.data.user.name}!`);
+      if (response.data.success) {
+        const { token, user } = response.data;
+        login(user, token);
+        showSuccess(`Welcome ${user.name}! Registration successful! 🎉`);
         navigate("/feedback");
       }
     } catch (error) {
-      console.error(error);
+      console.error("OTP verification failed:", error);
 
-      // Backend field errors
-      if (error.response?.data?.field && error.response?.data?.message) {
-        setErrors((prev) => ({
-          ...prev,
-          [error.response.data.field]: error.response.data.message,
-        }));
+      if (error.response?.status === 400) {
+        showError("Invalid OTP. Please check the code and try again.");
+      } else if (
+        error.code === "ECONNREFUSED" ||
+        error.message?.includes("Network Error")
+      ) {
+        showError(
+          "Cannot connect to server. Please check if backend is running."
+        );
       } else {
-        // Friendly generic message for users
         showError(
           error.response?.data?.message ||
-            "Something went wrong. Please try again later."
+            "Verification failed. Please try again."
         );
       }
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // Resend OTP Function
+  const handleResendOTP = async () => {
+    try {
+      setIsLoading(true);
+
+      // ✅ CORRECT URL - Remove /otp from path
+      const response = await axios.post(
+        "http://localhost:5000/api/resend-otp",
+        {
+          email: formData.email,
+        }
+      );
+
+      if (response.data.success) {
+        setOtpTimer(60);
+        setOtp(["", "", "", "", "", ""]); // Clear OTP fields
+        showSuccess("New OTP sent to your email!");
+      }
+    } catch (error) {
+      showError("Failed to resend OTP. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -277,21 +395,11 @@ const Register_Form = () => {
         <div className="mb-6">
           <div className="space-y-3 mb-4">
             {/* Google Button - Using GoogleLogin component */}
-            <GoogleOAuthProvider
-              clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
-            >
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                useOneTap={false}
-                theme="outline"
-                size="large"
-                text="signup_with"
-                shape="rectangular"
-                width="100%"
-              />
-            </GoogleOAuthProvider>
-
+            <GoogleAuthButton
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              text="signup_with"
+            />
             {/* LinkedIn Button - Now with consistent layout */}
             <button
               onClick={handleLinkedInLogin}
@@ -326,7 +434,10 @@ const Register_Form = () => {
         </div>
 
         {/* Registration Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={otpSent ? handleVerifyOTP : handleSubmit}
+          className="space-y-4"
+        >
           {/* Full Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2 text-left font-sans">
@@ -339,6 +450,7 @@ const Register_Form = () => {
               onChange={handleChange}
               placeholder="Enter your full name"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-400 transition-all duration-200 font-sans"
+              disabled={otpSent}
             />
             {showErrors && errors.fullName && (
               <p className="text-red-500 text-xs mt-1 text-left font-sans">
@@ -359,6 +471,7 @@ const Register_Form = () => {
               onChange={handleChange}
               placeholder="Enter your email"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-400 transition-all duration-200 font-sans"
+              disabled={otpSent}
             />
             {showErrors && errors.email && (
               <p className="text-red-500 text-xs mt-1 text-left font-sans">
@@ -380,11 +493,13 @@ const Register_Form = () => {
                 onChange={handleChange}
                 placeholder="Create a password"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pr-10 focus:outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-400 transition-all duration-200 font-sans"
+                disabled={otpSent}
               />
               <button
                 type="button"
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={otpSent}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -396,6 +511,11 @@ const Register_Form = () => {
             )}
           </div>
 
+          {/* OTP Input Section - Show only when OTP sent */}
+          {otpSent && (
+            <OTPInput otp={otp} setOtp={setOtp} isLoading={isVerifying} />
+          )}
+
           {/* Terms */}
           <div>
             <label className="flex items-start text-sm text-gray-600 text-left font-sans">
@@ -405,6 +525,7 @@ const Register_Form = () => {
                 checked={formData.acceptTerms}
                 onChange={handleChange}
                 className="h-4 w-4 border-gray-300 mr-2 rounded focus:ring-gray-400 mt-0.5"
+                disabled={otpSent}
               />
               <span>
                 I agree to the{" "}
@@ -430,13 +551,42 @@ const Register_Form = () => {
             )}
           </div>
 
+          {/* Submit/Verify Button */}
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={
+              isLoading || isVerifying || (otpSent && otp.join("").length !== 6)
+            }
             className="w-full bg-black hover:bg-gray-800 disabled:bg-gray-400 text-white py-2.5 rounded-lg text-sm font-medium transition-all font-sans"
           >
-            {isLoading ? "Creating Account..." : "Create Account"}
+            {isVerifying
+              ? "Verifying..."
+              : otpSent
+              ? "Verify OTP & Create Account"
+              : isLoading
+              ? "Sending OTP..."
+              : "Request OTP"}
           </button>
+
+          {/* Resend OTP Section */}
+          {otpSent && (
+            <div className="text-center">
+              {otpTimer > 0 ? (
+                <p className="text-gray-500 text-sm">
+                  Resend OTP in {otpTimer}s
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={isLoading}
+                  className="text-blue-600 hover:underline text-sm font-sans"
+                >
+                  Resend OTP
+                </button>
+              )}
+            </div>
+          )}
         </form>
 
         {/* Sign In Link */}

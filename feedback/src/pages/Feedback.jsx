@@ -11,6 +11,23 @@ const FeedbackForm = () => {
   const totalPages = 3;
   const navigate = useNavigate();
   const { user, token, loading, isAuthenticated, login } = useAuth();
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const replaceHistory = params.get("replaceHistory");
+
+    if (replaceHistory) {
+      // remove LinkedIn page from history stack
+      window.history.replaceState({}, "", "/feedback");
+
+      // ✅ also push clean state to ensure "Back" goes to signin
+      window.history.pushState({}, "", "/feedback");
+
+      // ✅ when user clicks back, send them to signin
+      window.onpopstate = () => {
+        window.location.href = "/signin";
+      };
+    }
+  }, []);
 
   // ✅ FIXED: OAuth processing
   useEffect(() => {

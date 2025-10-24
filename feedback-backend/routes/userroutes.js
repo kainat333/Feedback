@@ -4,10 +4,7 @@ const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
-// JWT secret key
-const JWT_SECRET = "your_secret_key";
-
-//  Register new user
+// Register new user
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -28,35 +25,51 @@ router.post("/register", async (req, res) => {
   }
 });
 
-//  Login existing user
+// Login existing user
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    console.log("🔍 Login attempt for:", email);
+
     const user = await User.findOne({ email });
-    if (!user)
+    if (!user) {
+      console.log("❌ User not found");
       return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    console.log("Submitted password:", password);
+    console.log("Stored hash:", user.password);
 
     const isMatch = await bcrypt.compare(password, user.password);
-
     console.log("✅ Password match result:", isMatch);
-    if (!isMatch)
-      return res.status(400).json({ message: "Invalid email or password" });
 
-    // Create JWT token
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "1d" });
+    if (!isMatch) {
+      console.log("❌ Password mismatch");
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    // ✅ FIXED: Use environment variable for JWT secret
+    console.log(
+      "🔐 Creating token with JWT_SECRET length:",
+      process.env.JWT_SECRET?.length
+    );
+
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET, // ← USING ENV VARIABLE
+      { expiresIn: "1d" }
+    );
+
+    console.log("✅ Login successful, token created");
 
     res.status(200).json({
       message: "Login successful",
       token,
       user: { id: user._id, name: user.name, email: user.email },
     });
-    console.log("🔍 Login attempt for:", email);
-    console.log("Submitted password:", password);
-    console.log("Stored hash:", user.password);
-
-    console.log("✅ Password match result:", isMatch);
   } catch (err) {
+    console.error("❌ Login error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });

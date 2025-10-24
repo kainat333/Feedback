@@ -56,7 +56,17 @@ const SignIn_Form = () => {
       } else if (error.includes("email_not_found")) {
         errorMessage = "Could not retrieve your email from LinkedIn.";
       } else if (error.includes("access_denied")) {
-        errorMessage = "You denied the LinkedIn login request.";
+        errorMessage = "You canceled the LinkedIn sign-in.";
+        toast.info(errorMessage);
+
+        // Optional: Redirect back to your sign-in page
+        setTimeout(() => {
+          window.location.href = "/signin"; // adjust path if needed
+        }, 1500);
+
+        // Remove error from URL
+        window.history.replaceState({}, "", window.location.pathname);
+        return; // stop further execution
       } else if (error.includes("invalid_token")) {
         errorMessage = "Authentication token invalid. Please try again.";
       }
@@ -123,26 +133,26 @@ const SignIn_Form = () => {
       const { credential } = credentialResponse;
 
       if (!credential) {
-        console.error("❌ No credential in response");
+        console.error(" No credential in response");
         toast.error("Google authentication failed. No credential received.");
         return;
       }
 
-      console.log("📨 Sending credential to backend...");
+      console.log(" Sending credential to backend...");
 
       const response = await axios.post(
         "http://localhost:5000/api/auth/google",
         { credential }
       );
 
-      console.log("✅ Backend response received:", response.data);
+      console.log("Backend response received:", response.data);
 
       const { user, token } = response.data;
       login(user, token);
       toast.success("Google login successful!");
       navigate("/feedback");
     } catch (error) {
-      console.error("❌ Google login failed:", error);
+      console.error(" Google login failed:", error);
       console.error("Error response data:", error.response?.data);
 
       toast.error("Google login failed. Please try again.");

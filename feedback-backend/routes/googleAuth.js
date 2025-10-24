@@ -54,11 +54,16 @@ router.post("/google", async (req, res) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET || "fallback_secret_key",
-      { expiresIn: "1h" }
-    );
+    // Add this at the top of your auth controller file
+    if (!process.env.JWT_SECRET) {
+      console.error("❌ CRITICAL: JWT_SECRET environment variable is not set!");
+      throw new Error("JWT_SECRET is required");
+    }
+
+    // Then your token creation
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
     // Send successful response
     res.status(200).json({

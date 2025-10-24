@@ -19,9 +19,10 @@
     "express": "^5.1.0",
     "google-auth-library": "^10.4.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.19.1",
-    "nodemailer": "^7.0.9",
+    "mongoose": "^8.19.2",
+    "nodemailer": "^7.0.10",
     "nodeman": "^1.1.2",
+    "otp-generator": "^4.0.1",
     "react-toastify": "^11.0.5"
   },
   "devDependencies": {
